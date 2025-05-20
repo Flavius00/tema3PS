@@ -15,6 +15,8 @@ public class Locatie {
         this.numar = numar;
     }
 
+    public Locatie(){}
+
     public int getId() {
         return id;
     }
@@ -53,5 +55,10 @@ public class Locatie {
 
     public void setNumar(String numar) {
         this.numar = numar;
+    }
+
+    @Override
+    public String toString() {
+        return tara + " " + oras + " " +strada + " " + numar;
     }
 }

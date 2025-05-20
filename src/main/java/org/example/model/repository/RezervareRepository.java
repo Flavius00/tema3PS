@@ -154,4 +154,40 @@ public class RezervareRepository {
         }
         return rezervariList;
     }
+
+    // Adăugat metoda pentru a obține rezervările pentru o cameră specifică
+    public List<Rezervare> getRezervariByCamera(int idCamera) throws SQLException {
+        Connection connection = Repository.getConnection();
+
+        List<Rezervare> rezervariList = new ArrayList<>();
+        String query = "SELECT * FROM rezervare WHERE id_camera = ?";
+
+        try(PreparedStatement pstmt = connection.prepareStatement(query)){
+            pstmt.setInt(1, idCamera);
+
+            try(ResultSet rs = pstmt.executeQuery()){
+                while(rs.next()){
+                    int id = rs.getInt("id");
+                    LocalDateTime startDate = rs.getTimestamp("start_date").toLocalDateTime();
+                    LocalDateTime endDate = rs.getTimestamp("end_date").toLocalDateTime();
+                    int camId = rs.getInt("id_camera");
+                    String numeClient = rs.getString("nume_client");
+                    String prenumeClient = rs.getString("prenume_client");
+                    String telefonClient = rs.getString("telefon_client");
+                    String emailClient = rs.getString("email_client");
+
+                    Rezervare rezervare = new Rezervare(id, startDate, endDate, camId,
+                            numeClient, prenumeClient, telefonClient, emailClient);
+                    rezervariList.add(rezervare);
+                }
+            }
+        }
+        catch(SQLException e){
+            System.out.println("Eroare la preluarea rezervărilor din baza de date!" + e.getMessage());
+        }
+        finally{
+            Repository.closeConnection();
+        }
+        return rezervariList;
+    }
 }

@@ -12,7 +12,7 @@ import java.util.ResourceBundle;
 public class RezervareDialog extends JDialog {
     private JTextField startDateField;
     private JTextField endDateField;
-    private JComboBox<Integer> cameraComboBox;
+    private JTextField cameraIdField;
     private JTextField numeClientField;
     private JTextField prenumeClientField;
     private JTextField telefonClientField;
@@ -24,17 +24,19 @@ public class RezervareDialog extends JDialog {
     private boolean approved = false;
     private Rezervare rezervare;
     private ResourceBundle bundle;
+    private int idCamera;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
-    public RezervareDialog(JFrame parent, Rezervare rezervare, ResourceBundle bundle) {
+    public RezervareDialog(JFrame parent, Rezervare rezervare, ResourceBundle bundle, int idCamera) {
         super(parent, true);
         this.rezervare = rezervare;
         this.bundle = bundle;
+        this.idCamera = idCamera;
 
         if (rezervare == null) {
             setTitle(bundle.getString("add") + " " + bundle.getString("reservation").toLowerCase());
-            this.rezervare = new Rezervare(0, LocalDateTime.now(), LocalDateTime.now().plusDays(1), 0, "", "", "", "");
+            this.rezervare = new Rezervare(0, LocalDateTime.now(), LocalDateTime.now().plusDays(1), idCamera, "", "", "", "");
         } else {
             setTitle(bundle.getString("edit") + " " + bundle.getString("reservation").toLowerCase());
         }
@@ -76,18 +78,18 @@ public class RezervareDialog extends JDialog {
         endDateField = new JTextField(20);
         formPanel.add(endDateField, gbc);
 
-        // Camera
+        // Camera ID
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.weightx = 0.0;
-        formPanel.add(new JLabel(bundle.getString("room") + ":"), gbc);
+        formPanel.add(new JLabel(bundle.getString("room") + " ID:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 2;
         gbc.weightx = 1.0;
-        cameraComboBox = new JComboBox<>();
-        // Adaugarea camerelor ar trebui facuta de controller
-        formPanel.add(cameraComboBox, gbc);
+        cameraIdField = new JTextField(String.valueOf(idCamera));
+        cameraIdField.setEditable(false);
+        formPanel.add(cameraIdField, gbc);
 
         // Nume client
         gbc.gridx = 0;
@@ -145,8 +147,10 @@ public class RezervareDialog extends JDialog {
         cancelButton = new JButton(bundle.getString("cancel"));
 
         saveButton.addActionListener(e -> {
-            approved = true;
-            dispose();
+            if (validateInputs()) {
+                approved = true;
+                dispose();
+            }
         });
 
         cancelButton.addActionListener(e -> dispose());
@@ -157,11 +161,22 @@ public class RezervareDialog extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
     }
 
+    private boolean validateInputs() {
+        try {
+            LocalDateTime.parse(startDateField.getText(), DATE_FORMATTER);
+            LocalDateTime.parse(endDateField.getText(), DATE_FORMATTER);
+            return true;
+        } catch (DateTimeParseException e) {
+            JOptionPane.showMessageDialog(this, "Format dată invalid. Utilizați formatul: dd-MM-yyyy HH:mm",
+                    "Eroare", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+    }
+
     private void loadData() {
         if (rezervare.getId() != 0) {
             startDateField.setText(rezervare.getStartDate().format(DATE_FORMATTER));
             endDateField.setText(rezervare.getEndDate().format(DATE_FORMATTER));
-            cameraComboBox.setSelectedItem(rezervare.getIdCamera());
             numeClientField.setText(rezervare.getNumeClient());
             prenumeClientField.setText(rezervare.getPrenumeClient());
             telefonClientField.setText(rezervare.getTelefonClient());
@@ -184,7 +199,7 @@ public class RezervareDialog extends JDialog {
 
                 rezervare.setStartDate(startDate);
                 rezervare.setEndDate(endDate);
-                rezervare.setIdCamera((Integer) cameraComboBox.getSelectedItem());
+                rezervare.setIdCamera(Integer.parseInt(cameraIdField.getText()));
                 rezervare.setNumeClient(numeClientField.getText());
                 rezervare.setPrenumeClient(prenumeClientField.getText());
                 rezervare.setTelefonClient(telefonClientField.getText());
@@ -196,16 +211,5 @@ public class RezervareDialog extends JDialog {
             }
         }
         return rezervare;
-    }
-
-    public void setCamere(Integer[] camere) {
-        cameraComboBox.removeAllItems();
-        for (Integer idCamera : camere) {
-            cameraComboBox.addItem(idCamera);
-        }
-    }
-
-    public void setSelectedCamera(int idCamera) {
-        cameraComboBox.setSelectedItem(idCamera);
     }
 }

@@ -77,4 +77,9 @@ public class Hotel {
     public void setIdLant(int idLant) {
         this.idLant = idLant;
     }
+
+    @Override
+    public String toString(){
+        return nume;
+    }
 }

@@ -13,7 +13,7 @@ public class CameraRepository {
     public List<Camera> getAllCamera() throws SQLException {
         Connection connection = Repository.getConnection();
 
-        List<Camera> cameraList = new ArrayList<Camera>();
+        List<Camera> cameraList = new ArrayList<>();
         String query = "SELECT * FROM camera";
 
         try(Statement statement = connection.createStatement();
@@ -98,7 +98,6 @@ public class CameraRepository {
             pstmt.setInt(1, id);
 
             int affectedRows = pstmt.executeUpdate();
-            // Completarea CameraRepository
             return affectedRows > 0;
         } catch (SQLException e) {
             System.err.println("Eroare la ștergerea camerei: " + e.getMessage());

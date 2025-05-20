@@ -1,11 +1,7 @@
 package org.example.view;
 
-import org.example.controller.CameraController;
-import org.example.controller.HotelController;
-import org.example.controller.RezervareController;
-import org.example.model.Camera;
+import org.example.controller.StatisticsController;
 import org.example.model.Hotel;
-import org.example.model.Rezervare;
 import org.example.model.Observer;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -17,18 +13,11 @@ import org.jfree.data.general.DefaultPieDataset;
 import javax.swing.*;
 import java.awt.*;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 
 public class StatisticsView extends JPanel implements Observer {
-    private HotelController hotelController;
-    private CameraController cameraController;
-    private RezervareController rezervareController;
+    private StatisticsController controller;
     private ResourceBundle bundle;
 
     private JComboBox<Hotel> hotelComboBox;
@@ -36,17 +25,9 @@ public class StatisticsView extends JPanel implements Observer {
     private JButton refreshButton;
     private JComboBox<String> statTypeCombo;
 
-    public StatisticsView(HotelController hotelController, CameraController cameraController,
-                          RezervareController rezervareController, ResourceBundle bundle) {
-        this.hotelController = hotelController;
-        this.cameraController = cameraController;
-        this.rezervareController = rezervareController;
+    public StatisticsView(StatisticsController controller, ResourceBundle bundle) {
+        this.controller = controller;
         this.bundle = bundle;
-
-        hotelController.addObserver(this);
-        cameraController.addObserver(this);
-        rezervareController.addObserver(this);
-
         initComponents();
     }
 
@@ -60,11 +41,10 @@ public class StatisticsView extends JPanel implements Observer {
         loadHotels();
         controlPanel.add(hotelComboBox);
 
-        statTypeCombo = new JComboBox<>(new String[] {
-                bundle.getString("statRoomPrice"),
-                bundle.getString("statReservationsByMonth"),
-                bundle.getString("statOccupancyRate")
-        });
+        statTypeCombo = new JComboBox<>();
+        statTypeCombo.addItem(bundle.getString("statRoomPrice"));
+        statTypeCombo.addItem(bundle.getString("statReservationsByMonth"));
+        statTypeCombo.addItem(bundle.getString("statOccupancyRate"));
         controlPanel.add(statTypeCombo);
 
         refreshButton = new JButton(bundle.getString("refresh"));
@@ -80,9 +60,10 @@ public class StatisticsView extends JPanel implements Observer {
     }
 
     private void loadHotels() {
-        hotelComboBox.removeAllItems();
         try {
-            List<Hotel> hotels = hotelController.getAllHotels();
+            List<Hotel> hotels = controller.getAllHotels();
+            hotelComboBox.removeAllItems();
+
             for (Hotel hotel : hotels) {
                 hotelComboBox.addItem(hotel);
             }
@@ -124,13 +105,7 @@ public class StatisticsView extends JPanel implements Observer {
     }
 
     private void createRoomPriceChart(int hotelId) throws SQLException {
-        List<Camera> camere = cameraController.getCamereByHotel(hotelId);
-
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-        for (Camera camera : camere) {
-            dataset.addValue(camera.getPretPerNoapte(), bundle.getString("price"), camera.getNrCamera());
-        }
+        DefaultCategoryDataset dataset = controller.createRoomPriceDataset(hotelId);
 
         JFreeChart chart = ChartFactory.createBarChart(
                 bundle.getString("roomPriceChartTitle"),
@@ -145,31 +120,7 @@ public class StatisticsView extends JPanel implements Observer {
     }
 
     private void createReservationsByMonthChart(int hotelId) throws SQLException {
-        List<Rezervare> rezervari = rezervareController.getAllRezervari();
-        List<Camera> camere = cameraController.getCamereByHotel(hotelId);
-
-        List<Integer> camereIds = camere.stream()
-                .map(Camera::getId)
-                .collect(Collectors.toList());
-
-        // Filter rezervari for this hotel
-        rezervari = rezervari.stream()
-                .filter(r -> camereIds.contains(r.getIdCamera()))
-                .collect(Collectors.toList());
-
-        Map<String, Integer> reservationsByMonth = new HashMap<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-yyyy");
-
-        for (Rezervare rezervare : rezervari) {
-            String month = rezervare.getStartDate().format(formatter);
-            reservationsByMonth.put(month, reservationsByMonth.getOrDefault(month, 0) + 1);
-        }
-
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-        for (Map.Entry<String, Integer> entry : reservationsByMonth.entrySet()) {
-            dataset.addValue(entry.getValue(), bundle.getString("reservations"), entry.getKey());
-        }
+        DefaultCategoryDataset dataset = controller.createReservationsByMonthDataset(hotelId);
 
         JFreeChart chart = ChartFactory.createLineChart(
                 bundle.getString("reservationsByMonthChartTitle"),
@@ -184,18 +135,7 @@ public class StatisticsView extends JPanel implements Observer {
     }
 
     private void createOccupancyRateChart(int hotelId) throws SQLException {
-        List<Camera> camere = cameraController.getCamereByHotel(hotelId);
-        int totalRooms = camere.size();
-
-        // Check occupancy for today
-        LocalDateTime now = LocalDateTime.now();
-        List<Camera> occupiedRooms = cameraController.getCamereRezervateByDate(hotelId, now);
-        int occupiedCount = occupiedRooms.size();
-        int availableCount = totalRooms - occupiedCount;
-
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        dataset.setValue(bundle.getString("occupied"), occupiedCount);
-        dataset.setValue(bundle.getString("available"), availableCount);
+        DefaultPieDataset dataset = controller.createOccupancyRateDataset(hotelId);
 
         JFreeChart chart = ChartFactory.createPieChart(
                 bundle.getString("occupancyRateChartTitle"),
@@ -215,10 +155,21 @@ public class StatisticsView extends JPanel implements Observer {
     public void changeLanguage(ResourceBundle bundle) {
         this.bundle = bundle;
         refreshButton.setText(bundle.getString("refresh"));
+
+        String selectedItem = (String) statTypeCombo.getSelectedItem();
         statTypeCombo.removeAllItems();
         statTypeCombo.addItem(bundle.getString("statRoomPrice"));
         statTypeCombo.addItem(bundle.getString("statReservationsByMonth"));
         statTypeCombo.addItem(bundle.getString("statOccupancyRate"));
+
+        // Try to select the previously selected item
+        for (int i = 0; i < statTypeCombo.getItemCount(); i++) {
+            if (selectedItem.equals(statTypeCombo.getItemAt(i))) {
+                statTypeCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+
         refreshCharts();
     }
 }

@@ -2,6 +2,8 @@ package org.example.view;
 
 import org.example.controller.HotelController;
 import org.example.model.Hotel;
+import org.example.model.Lant;
+import org.example.model.Locatie;
 import org.example.model.Observer;
 
 import javax.swing.*;
@@ -82,6 +84,7 @@ public class HotelView extends JPanel implements Observer {
         try {
             List<Hotel> hotels = controller.getAllHotels();
             listModel.clear();
+
             for (Hotel hotel : hotels) {
                 listModel.addElement(hotel);
             }
@@ -98,6 +101,40 @@ public class HotelView extends JPanel implements Observer {
         loadHotels();
     }
 
+    public void changeLanguage(ResourceBundle bundle) {
+        this.bundle = bundle;
+        addButton.setText(bundle.getString("add"));
+        editButton.setText(bundle.getString("edit"));
+        deleteButton.setText(bundle.getString("delete"));
+        viewCamereButton.setText(bundle.getString("viewRooms"));
+    }
+
+    public void showAddHotelDialog(HotelController controller, JFrame parentFrame) throws SQLException {
+        List<Lant> lanturi = controller.getAllLanturi();
+        List<Locatie> locatii = controller.getAllLocatii();
+
+        HotelDialog dialog = new HotelDialog(parentFrame, null, bundle, lanturi, locatii);
+        dialog.setVisible(true);
+
+        if (dialog.isApproved()) {
+            Hotel hotel = dialog.getHotel();
+            controller.saveHotel(hotel);
+        }
+    }
+
+    public void showEditHotelDialog(HotelController controller, Hotel hotel, JFrame parentFrame) throws SQLException {
+        List<Lant> lanturi = controller.getAllLanturi();
+        List<Locatie> locatii = controller.getAllLocatii();
+
+        HotelDialog dialog = new HotelDialog(parentFrame, hotel, bundle, lanturi, locatii);
+        dialog.setVisible(true);
+
+        if (dialog.isApproved()) {
+            Hotel updatedHotel = dialog.getHotel();
+            controller.updateHotel(updatedHotel);
+        }
+    }
+
     private class HotelListCellRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -109,13 +146,5 @@ public class HotelView extends JPanel implements Observer {
             }
             return this;
         }
-    }
-
-    public void changeLanguage(ResourceBundle bundle) {
-        this.bundle = bundle;
-        addButton.setText(bundle.getString("add"));
-        editButton.setText(bundle.getString("edit"));
-        deleteButton.setText(bundle.getString("delete"));
-        viewCamereButton.setText(bundle.getString("viewRooms"));
     }
 }

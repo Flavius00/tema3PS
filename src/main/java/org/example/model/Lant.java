@@ -28,4 +28,9 @@ public class Lant {
         this.nume = nume;
     }
 
+    @Override
+    public String toString() {
+        return nume; // Returnează doar numele lanțului
+    }
+
 }

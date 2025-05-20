@@ -1,18 +1,21 @@
 package org.example.view;
 
 import org.example.model.Hotel;
+import org.example.model.Lant;
+import org.example.model.Locatie;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class HotelDialog extends JDialog {
     private JTextField numeField;
-    private JComboBox<Integer> locatieComboBox;
+    private JComboBox<Locatie> locatieComboBox;
     private JTextField telefonField;
     private JTextField emailField;
     private JTextArea facilitatiArea;
-    private JComboBox<Integer> lantComboBox;
+    private JComboBox<Lant> lantComboBox;
 
     private JButton saveButton;
     private JButton cancelButton;
@@ -21,7 +24,7 @@ public class HotelDialog extends JDialog {
     private Hotel hotel;
     private ResourceBundle bundle;
 
-    public HotelDialog(JFrame parent, Hotel hotel, ResourceBundle bundle) {
+    public HotelDialog(JFrame parent, Hotel hotel, ResourceBundle bundle, List<Lant> lanturi, List<Locatie> locatii) {
         super(parent, true);
         this.hotel = hotel;
         this.bundle = bundle;
@@ -33,13 +36,13 @@ public class HotelDialog extends JDialog {
             setTitle(bundle.getString("edit") + " " + bundle.getString("hotel").toLowerCase());
         }
 
-        initComponents();
+        initComponents(lanturi, locatii);
         loadData();
         pack();
         setLocationRelativeTo(parent);
     }
 
-    private void initComponents() {
+    private void initComponents(List<Lant> lanturi, List<Locatie> locatii) {
         setLayout(new BorderLayout());
 
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -68,7 +71,9 @@ public class HotelDialog extends JDialog {
         gbc.gridy = 1;
         gbc.weightx = 1.0;
         locatieComboBox = new JComboBox<>();
-        // Adaugarea locatiilor ar trebui facuta de controller
+        for (Locatie locatie : locatii) {
+            locatieComboBox.addItem(locatie);
+        }
         formPanel.add(locatieComboBox, gbc);
 
         // Telefon
@@ -119,7 +124,9 @@ public class HotelDialog extends JDialog {
         gbc.gridy = 5;
         gbc.weightx = 1.0;
         lantComboBox = new JComboBox<>();
-        // Adaugarea lanturilor ar trebui facuta de controller
+        for (Lant lant : lanturi) {
+            lantComboBox.addItem(lant);
+        }
         formPanel.add(lantComboBox, gbc);
 
         add(formPanel, BorderLayout.CENTER);
@@ -145,11 +152,28 @@ public class HotelDialog extends JDialog {
     private void loadData() {
         if (hotel.getId() != 0) {
             numeField.setText(hotel.getNume());
-            locatieComboBox.setSelectedItem(hotel.getIdLocatie());
+
+            // Attempt to select the correct Locatie based on ID
+            for (int i = 0; i < locatieComboBox.getItemCount(); i++) {
+                Locatie locatie = locatieComboBox.getItemAt(i);
+                if (locatie.getId() == hotel.getIdLocatie()) {
+                    locatieComboBox.setSelectedIndex(i);
+                    break;
+                }
+            }
+
             telefonField.setText(hotel.getNrTelefon());
             emailField.setText(hotel.getEmail());
             facilitatiArea.setText(hotel.getFacilitati());
-            lantComboBox.setSelectedItem(hotel.getIdLant());
+
+            // Attempt to select the correct Lant based on ID
+            for (int i = 0; i < lantComboBox.getItemCount(); i++) {
+                Lant lant = lantComboBox.getItemAt(i);
+                if (lant.getId() == hotel.getIdLant()) {
+                    lantComboBox.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
     }
 
@@ -160,26 +184,21 @@ public class HotelDialog extends JDialog {
     public Hotel getHotel() {
         if (approved) {
             hotel.setNume(numeField.getText());
-            hotel.setIdLocatie((Integer) locatieComboBox.getSelectedItem());
+
+            Locatie selectedLocatie = (Locatie) locatieComboBox.getSelectedItem();
+            if (selectedLocatie != null) {
+                hotel.setIdLocatie(selectedLocatie.getId());
+            }
+
             hotel.setNrTelefon(telefonField.getText());
             hotel.setEmail(emailField.getText());
             hotel.setFacilitati(facilitatiArea.getText());
-            hotel.setIdLant((Integer) lantComboBox.getSelectedItem());
+
+            Lant selectedLant = (Lant) lantComboBox.getSelectedItem();
+            if (selectedLant != null) {
+                hotel.setIdLant(selectedLant.getId());
+            }
         }
         return hotel;
-    }
-
-    public void setLocatii(Integer[] locatii) {
-        locatieComboBox.removeAllItems();
-        for (Integer idLocatie : locatii) {
-            locatieComboBox.addItem(idLocatie);
-        }
-    }
-
-    public void setLanturi(Integer[] lanturi) {
-        lantComboBox.removeAllItems();
-        for (Integer idLant : lanturi) {
-            lantComboBox.addItem(idLant);
-        }
     }
 }

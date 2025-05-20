@@ -1,13 +1,15 @@
 package org.example.view;
 
 import org.example.model.Camera;
+import org.example.model.Hotel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class CameraDialog extends JDialog {
-    private JComboBox<Integer> hotelComboBox;
+    private JComboBox<Hotel> hotelComboBox;
     private JTextField nrCameraField;
     private JTextField pretField;
     private JComboBox<Integer> pozeComboBox;
@@ -19,7 +21,7 @@ public class CameraDialog extends JDialog {
     private Camera camera;
     private ResourceBundle bundle;
 
-    public CameraDialog(JFrame parent, Camera camera, ResourceBundle bundle) {
+    public CameraDialog(JFrame parent, Camera camera, ResourceBundle bundle, List<Hotel> hoteluri, Integer[] pozeIds) {
         super(parent, true);
         this.camera = camera;
         this.bundle = bundle;
@@ -31,13 +33,13 @@ public class CameraDialog extends JDialog {
             setTitle(bundle.getString("edit") + " " + bundle.getString("room").toLowerCase());
         }
 
-        initComponents();
+        initComponents(hoteluri, pozeIds);
         loadData();
         pack();
         setLocationRelativeTo(parent);
     }
 
-    private void initComponents() {
+    private void initComponents(List<Hotel> hoteluri, Integer[] pozeIds) {
         setLayout(new BorderLayout());
 
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -54,7 +56,9 @@ public class CameraDialog extends JDialog {
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         hotelComboBox = new JComboBox<>();
-        // Adaugarea hotelurilor ar trebui facuta de controller
+        for (Hotel hotel : hoteluri) {
+            hotelComboBox.addItem(hotel);
+        }
         formPanel.add(hotelComboBox, gbc);
 
         // Numar camera
@@ -91,7 +95,9 @@ public class CameraDialog extends JDialog {
         gbc.gridy = 3;
         gbc.weightx = 1.0;
         pozeComboBox = new JComboBox<>();
-        // Adaugarea ID-urilor de poze ar trebui facuta de controller
+        for (Integer id : pozeIds) {
+            pozeComboBox.addItem(id);
+        }
         formPanel.add(pozeComboBox, gbc);
 
         add(formPanel, BorderLayout.CENTER);
@@ -116,10 +122,26 @@ public class CameraDialog extends JDialog {
 
     private void loadData() {
         if (camera.getId() != 0) {
-            hotelComboBox.setSelectedItem(camera.getIdHotel());
+            // Attempt to select the correct Hotel based on ID
+            for (int i = 0; i < hotelComboBox.getItemCount(); i++) {
+                Hotel hotel = hotelComboBox.getItemAt(i);
+                if (hotel.getId() == camera.getIdHotel()) {
+                    hotelComboBox.setSelectedIndex(i);
+                    break;
+                }
+            }
+
             nrCameraField.setText(camera.getNrCamera());
             pretField.setText(String.valueOf(camera.getPretPerNoapte()));
-            pozeComboBox.setSelectedItem(camera.getIdPoze());
+
+            // Attempt to select the correct Poze ID
+            for (int i = 0; i < pozeComboBox.getItemCount(); i++) {
+                Integer id = pozeComboBox.getItemAt(i);
+                if (id == camera.getIdPoze()) {
+                    pozeComboBox.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
     }
 
@@ -129,33 +151,34 @@ public class CameraDialog extends JDialog {
 
     public Camera getCamera() {
         if (approved) {
-            camera.setIdHotel((Integer) hotelComboBox.getSelectedItem());
+            Hotel selectedHotel = (Hotel) hotelComboBox.getSelectedItem();
+            if (selectedHotel != null) {
+                camera.setIdHotel(selectedHotel.getId());
+            }
+
             camera.setNrCamera(nrCameraField.getText());
+
             try {
                 camera.setPretPerNoapte(Float.parseFloat(pretField.getText()));
             } catch (NumberFormatException e) {
                 camera.setPretPerNoapte(0);
             }
-            camera.setIdPoze((Integer) pozeComboBox.getSelectedItem());
+
+            Integer selectedPozeId = (Integer) pozeComboBox.getSelectedItem();
+            if (selectedPozeId != null) {
+                camera.setIdPoze(selectedPozeId);
+            }
         }
         return camera;
     }
 
-    public void setHoteluri(Integer[] hoteluri) {
-        hotelComboBox.removeAllItems();
-        for (Integer idHotel : hoteluri) {
-            hotelComboBox.addItem(idHotel);
+    public void preSelectHotel(int hotelId) {
+        for (int i = 0; i < hotelComboBox.getItemCount(); i++) {
+            Hotel hotel = hotelComboBox.getItemAt(i);
+            if (hotel.getId() == hotelId) {
+                hotelComboBox.setSelectedIndex(i);
+                break;
+            }
         }
-    }
-
-    public void setPoze(Integer[] poze) {
-        pozeComboBox.removeAllItems();
-        for (Integer idPoze : poze) {
-            pozeComboBox.addItem(idPoze);
-        }
-    }
-
-    public void setSelectedHotel(int idHotel) {
-        hotelComboBox.setSelectedItem(idHotel);
     }
 }
