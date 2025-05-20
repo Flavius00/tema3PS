@@ -30,7 +30,7 @@ public class CameraRepository {
             }
         }
         catch(SQLException e){
-            System.out.println("Eroare la preluarea camerai din baza de date!" + e.getMessage());
+            System.out.println("Eroare la preluarea camerelor din baza de date!" + e.getMessage());
         }
         finally{
             Repository.closeConnection();
@@ -67,5 +67,72 @@ public class CameraRepository {
             System.err.println("Eroare la salvarea camerei: " + e.getMessage());
             return false;
         }
+    }
+
+    public boolean update(Camera camera){
+        Connection connection = Repository.getConnection();
+
+        String sql = "UPDATE camera SET id_hotel=?, nr_camera=?, pret_per_noapte=?, id_poze=? WHERE id=?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, camera.getIdHotel());
+            pstmt.setString(2, camera.getNrCamera());
+            pstmt.setFloat(3, camera.getPretPerNoapte());
+            pstmt.setInt(4, camera.getIdPoze());
+            pstmt.setInt(5, camera.getId());
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.err.println("Eroare la actualizarea camerei: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean delete(int id){
+        Connection connection = Repository.getConnection();
+
+        String sql = "DELETE FROM camera WHERE id=?";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+
+            int affectedRows = pstmt.executeUpdate();
+            // Completarea CameraRepository
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.err.println("Eroare la ștergerea camerei: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<Camera> getCamereByHotel(int idHotel) throws SQLException {
+        Connection connection = Repository.getConnection();
+
+        List<Camera> cameraList = new ArrayList<>();
+        String query = "SELECT * FROM camera WHERE id_hotel = ?";
+
+        try(PreparedStatement pstmt = connection.prepareStatement(query)){
+            pstmt.setInt(1, idHotel);
+
+            try(ResultSet rs = pstmt.executeQuery()){
+                while(rs.next()){
+                    Camera camera = new Camera();
+                    camera.setId(rs.getInt("id"));
+                    camera.setIdHotel(rs.getInt("id_hotel"));
+                    camera.setNrCamera(rs.getString("nr_camera"));
+                    camera.setPretPerNoapte(rs.getFloat("pret_per_noapte"));
+                    camera.setIdPoze(rs.getInt("id_poze"));
+                    cameraList.add(camera);
+                }
+            }
+        }
+        catch(SQLException e){
+            System.out.println("Eroare la preluarea camerelor din baza de date!" + e.getMessage());
+        }
+        finally{
+            Repository.closeConnection();
+        }
+        return cameraList;
     }
 }
